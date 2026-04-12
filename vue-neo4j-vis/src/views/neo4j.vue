@@ -96,14 +96,11 @@
         @GraphTeble="GraphTeble"
       />
     </div>
-    <div class="show" :class="{ 'fullscreen-mode': isFullscreen }">
+    <div class="show">
       <Visualization
         @clickNode="handleClickNode"
-        @toggleFullscreen="handleToggleFullscreen"
         :records="records"
         :clearAll="clearAll"
-        :extendStyle="vizExtendStyle"
-        :maxNeighbours="1000"
       ></Visualization>
     </div>
   </div>
@@ -133,17 +130,11 @@ export default {
       clearAll: false,
       echartsData: [],
       nodesRelation: [],
-      isFullscreen: false,
       indicator: {
         entity: 0,
         entityType: 0,
         relationshipType: 0,
         triple: 0,
-      },
-      vizExtendStyle: {
-        height: "calc(100vh - 320px)",
-        minHeight: "360px",
-        maxHeight: "640px",
       },
     };
   },
@@ -203,10 +194,6 @@ export default {
       console.log(key, keyPath);
     },
     handleClickNode() {},
-    handleToggleFullscreen(isFullscreen) {
-      this.isFullscreen = isFullscreen;
-      console.log("全屏状态:", isFullscreen);
-    },
     Submit(query) {
       console.log("Submit", query);
       // let query = "MATCH (n:Author) RETURN n LIMIT 25";
@@ -331,20 +318,18 @@ export default {
       this.$refs.Search.setLoading(status);
     },
     handleLogout() {
-      this.$confirm("确定要退出登录吗？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          this.$router.push("/login");
-        })
-        .catch(() => {
-          // 取消退出登录
-        });
-    },
+      this.$confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        this.$router.push('/login');
+      }).catch(() => {
+        // 取消退出登录
+      });
+    }
   },
 };
 </script>
@@ -353,9 +338,9 @@ export default {
 .box {
   display: flex;
   width: 100%;
-  min-height: 0;
+  height: 100vh;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .tip {
@@ -473,26 +458,8 @@ export default {
 
 .show {
   width: 100%;
-  flex: 0 0 auto;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-}
-
-/* 全屏模式样式 */
-.show.fullscreen-mode {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-  border-radius: 0;
-  margin: 0;
-  padding: 0;
 }
 </style>
