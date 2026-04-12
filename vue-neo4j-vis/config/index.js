@@ -1,0 +1,57 @@
+/*
+ * @Author: yuhuan2er 68678438+yuhuan2er@users.noreply.github.com
+ * @Date: 2022-07-19 19:47:30
+ * @LastEditors: yuanchuang 1226377893@qq.com
+ * @LastEditTime: 2024-06-12 17:31:18
+ * @FilePath: \vue-neo4j-vis\config\index.js
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+// see http://vuejs-templates.github.io/webpack for documentation.
+var path = require("path");
+
+module.exports = {
+  build: {
+    env: require("./prod.env"),
+    port: 8082,
+    index: path.resolve(__dirname, "../dist/index.html"),
+    assetsRoot: path.resolve(__dirname, "../dist"),
+    assetsSubDirectory: "static",
+    assetsPublicPath: "/",
+    productionSourceMap: false,
+    // Gzip off by default as many popular static hosts such as
+    // Surge or Netlify already gzip all static assets for you.
+    // Before setting to `true`, make sure to:
+    // npm install --save-dev compression-webpack-plugin
+    productionGzip: false,
+    productionGzipExtensions: ["js", "css"],
+  },
+  dev: {
+    env: require("./dev.env"),
+    port: 8082,
+    assetsSubDirectory: "static",
+    assetsPublicPath: "/",
+    proxyTable: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        pathRewrite: {
+          "^/api": "/api",
+        },
+      },
+    },
+    // CSS Sourcemaps off by default because relative paths are "buggy"
+    // with this option, according to the CSS-Loader README
+    // (https://github.com/webpack/css-loader#sourcemaps)
+    // In our experience, they generally work as expected,
+    // just be aware of this issue when enabling this option.
+    cssSourceMap: false,
+  },
+  setting: {
+    // neo4jUrl: 'bolt://39.101.138.62:7687',
+    // neo4jUserName: 'neo4j',
+    // neo4jPassword: 'neo4j'
+    neo4jUrl: "bolt://localhost:7687",
+    neo4jUserName: "neo4j",
+    neo4jPassword: "neo4j1234",
+  },
+};
