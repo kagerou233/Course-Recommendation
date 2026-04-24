@@ -1,0 +1,48 @@
+@startuml DataModel
+
+skinparam componentStyle uml2
+
+package "节点 (Nodes)" {
+    class Student {
+        +Integer student_id
+        +String name
+        +String username
+        +String created_at
+        +Integer login_count
+        +String last_login
+    }
+
+    class Course {
+        +Integer id
+        +String title
+        +String description
+        +String category
+        +String type
+        +String level
+        +String duration
+        +Integer views
+        +Float rating
+        +String status
+        +String image
+        +String createTime
+    }
+
+    class Discipline {
+        +String name
+    }
+
+    class SubDiscipline {
+        +String name
+    }
+}
+
+package "关系 (Relationships)" {
+    Student "0..*" -- "0..*" Course : ENROLLED_IN >
+    Student "0..*" -- "0..*" Course : INTERACTED_WITH >
+    Student "0..*" -- "0..*" Student : FRIEND >
+    Discipline "1" -- "0..*" SubDiscipline : CONTAINS >
+    Discipline "1" -- "0..*" Course : CONTAINS >
+    Course "0..*" -- "0..*" Course : SIMILAR >
+}
+
+@enduml
