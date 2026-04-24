@@ -46,7 +46,7 @@ function initDb() {
 function getUserById(id) {
   return db
     .prepare(
-      "SELECT id, username, role, password_hash FROM users WHERE id = ?"
+      "SELECT id, username, role, password_hash, created_at FROM users WHERE id = ?"
     )
     .get(id);
 }
@@ -54,7 +54,7 @@ function getUserById(id) {
 function getUserByUsername(username) {
   return db
     .prepare(
-      "SELECT id, username, role, password_hash FROM users WHERE username = ? COLLATE NOCASE"
+      "SELECT id, username, role, password_hash, created_at FROM users WHERE username = ? COLLATE NOCASE"
     )
     .get(username.trim());
 }
@@ -74,6 +74,7 @@ function userPublic(row) {
     id: row.id,
     username: row.username,
     role: row.role,
+    created_at: row.created_at,
   };
 }
 

@@ -23,4 +23,15 @@ router.delete("/course/:id", ctrl.deleteCourse);
 router.get("/disciplines", ctrl.getDisciplines);
 router.put("/disciplines", ctrl.updateDisciplineName);
 
+// User Interaction & Recommendations
+router.post("/interactions", ctrl.recordUserInteraction);
+router.get(
+  "/recommendations/collaborative/:userId",
+  ctrl.getCollaborativeRecommendations,
+);
+router.get(
+  "/recommendations/shortest-path/:userId",
+  ctrl.getShortestPathRecommendations,
+);
+
 module.exports = router;

@@ -6,7 +6,10 @@ const {
   createUser,
   userPublic,
 } = require("../db/sqlite");
-const { syncRegisteredStudent } = require("../services/syncStudentToNeo4j");
+const {
+  upsertStudentProfile,
+  getStudentProfileStatus,
+} = require("../services/syncStudentToNeo4j");
 
 const router = express.Router();
 
@@ -74,7 +77,11 @@ router.post("/register", async (req, res) => {
   const token = generateToken(safe);
 
   try {
-    await syncRegisteredStudent({ id: safe.id, username: safe.username });
+    await upsertStudentProfile({
+      id: safe.id,
+      username: safe.username,
+      createdAt: row.created_at,
+    });
   } catch (err) {
     console.error("[Neo4j] 注册后同步 Student 失败:", err.message || err);
   }
@@ -86,7 +93,7 @@ router.post("/register", async (req, res) => {
   });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -100,11 +107,25 @@ router.post("/login", (req, res) => {
 
   const safe = userPublic(row);
   const token = generateToken(safe);
+  let profileCompleted = true;
+
+  if (safe.role !== "admin") {
+    try {
+      const status = await getStudentProfileStatus({ id: safe.id });
+      profileCompleted = status.profileCompleted;
+    } catch (err) {
+      console.error("[Neo4j] 登录时查询资料状态失败:", err.message || err);
+      profileCompleted = false;
+    }
+  }
 
   res.json({
     message: "登录成功",
     token,
-    user: safe,
+    user: {
+      ...safe,
+      profileCompleted,
+    },
   });
 });
 
@@ -112,6 +133,90 @@ router.get("/profile", verifyToken, (req, res) => {
   res.json({
     user: req.user,
   });
+});
+
+router.get("/student-profile/status", verifyToken, async (req, res) => {
+  if (req.user.role === "admin") {
+    return res.json({
+      success: true,
+      data: { exists: true, profileCompleted: true },
+    });
+  }
+
+  try {
+    const status = await getStudentProfileStatus({ id: req.user.id });
+    return res.json({
+      success: true,
+      data: status,
+    });
+  } catch (err) {
+    console.error("[Neo4j] 查询学生资料状态失败:", err.message || err);
+    return res.status(500).json({
+      success: false,
+      message: "查询资料状态失败",
+    });
+  }
+});
+
+router.post("/student-profile", verifyToken, async (req, res) => {
+  if (req.user.role === "admin") {
+    return res.status(400).json({
+      success: false,
+      message: "管理员无需填写学生资料",
+    });
+  }
+
+  const school = String((req.body && req.body.school) || "").trim();
+  const gender = String((req.body && req.body.gender) || "").trim();
+
+  if (!school) {
+    return res.status(400).json({
+      success: false,
+      message: "学校不能为空",
+    });
+  }
+
+  if (!["男", "女", "其他"].includes(gender)) {
+    return res.status(400).json({
+      success: false,
+      message: "性别仅支持 男/女/其他",
+    });
+  }
+
+  const row = getUserById(req.user.id);
+  if (!row) {
+    return res.status(404).json({
+      success: false,
+      message: "用户不存在",
+    });
+  }
+
+  try {
+    await upsertStudentProfile({
+      id: row.id,
+      username: row.username,
+      createdAt: row.created_at,
+      school,
+      gender,
+    });
+
+    return res.json({
+      success: true,
+      message: "学生资料保存成功",
+      data: {
+        school,
+        gender,
+        created_at: row.created_at,
+        profileCompleted: true,
+      },
+    });
+  } catch (err) {
+    console.error("[Neo4j] 保存学生资料失败:", err.message || err);
+    return res.status(500).json({
+      success: false,
+      message: "保存学生资料失败",
+    });
+  }
 });
 
 router.post("/logout", verifyToken, (req, res) => {

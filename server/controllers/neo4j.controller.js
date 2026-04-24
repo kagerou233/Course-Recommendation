@@ -656,3 +656,384 @@ exports.updateDisciplineName = async (req, res) => {
     await session.close();
   }
 };
+
+/**
+ * 交互类型映射为权重分数
+ */
+function getInteractionScore(interactionType, rating) {
+  const type = String(interactionType || "view").toLowerCase();
+  const baseMap = {
+    view: 1,
+    click: 2,
+    favorite: 3,
+    bookmark: 3,
+    like: 4,
+    enroll: 4,
+    complete: 5,
+    rate: 4,
+  };
+
+  if (type === "rate" && rating != null && !Number.isNaN(Number(rating))) {
+    return Math.max(1, Math.min(5, Number(rating)));
+  }
+  return baseMap[type] || 1;
+}
+
+/**
+ * 解析用户ID（兼容字符串和数字）
+ */
+function parseUserId(userId) {
+  const asInt = Number.parseInt(userId, 10);
+  return {
+    userIdStr: String(userId),
+    userIdInt: Number.isNaN(asInt) ? -1 : asInt,
+  };
+}
+
+/**
+ * 获取热门课程（兜底推荐）
+ */
+async function getPopularCourses(session, limit) {
+  const result = await session.run(
+    `
+    MATCH (c:Course)
+    RETURN c
+    ORDER BY coalesce(c.rating, 0) DESC, coalesce(c.visits, 0) DESC, coalesce(c.views, 0) DESC
+    LIMIT $limit
+    `,
+    { limit: require("neo4j-driver").int(limit) },
+  );
+
+  return result.records.map((r) => ({
+    ...mapCourseData(r.get("c").properties),
+    score: 0,
+    reason: "popular_fallback",
+  }));
+}
+
+/**
+ * 记录用户课程交互行为
+ * body: { userId, courseId, interactionType, rating? }
+ */
+exports.recordUserInteraction = async (req, res) => {
+  const session = driver.session();
+  const { userId, courseId, interactionType, rating } = req.body || {};
+
+  if (userId == null || courseId == null) {
+    return res.status(400).json({
+      success: false,
+      message: "userId 和 courseId 不能为空",
+    });
+  }
+
+  const { userIdStr, userIdInt } = parseUserId(userId);
+  const score = getInteractionScore(interactionType, rating);
+  const courseIdStr = String(courseId);
+  const courseIdInt = Number.isNaN(Number.parseInt(courseId, 10))
+    ? -1
+    : Number.parseInt(courseId, 10);
+
+  try {
+    const neo4j = require("neo4j-driver");
+    const result = await session.run(
+      `
+      MATCH (s:Student)
+      WHERE s.student_id = $userIdInt OR s.id = $userIdInt OR toString(s.student_id) = $userIdStr OR toString(s.id) = $userIdStr
+      MATCH (c:Course)
+      WHERE c.course_id = $courseIdInt OR c.id = $courseIdInt OR toString(c.course_id) = $courseIdStr OR toString(c.id) = $courseIdStr
+      MERGE (s)-[r:INTERACTED_WITH]->(c)
+      ON CREATE SET
+        r.count = 1,
+        r.score = $score,
+        r.last_type = $interactionType,
+        r.last_at = datetime()
+      ON MATCH SET
+        r.count = coalesce(r.count, 0) + 1,
+        r.score = coalesce(r.score, 0) + $score,
+        r.last_type = $interactionType,
+        r.last_at = datetime()
+      RETURN s, c, r
+      `,
+      {
+        userIdStr,
+        userIdInt,
+        courseIdStr,
+        courseIdInt,
+        score,
+        interactionType: String(interactionType || "view"),
+      },
+    );
+
+    if (result.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "未找到对应的学生或课程节点",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "交互记录成功",
+      data: {
+        userId: userIdStr,
+        courseId: courseIdStr,
+        interactionType: String(interactionType || "view"),
+        score,
+      },
+    });
+  } catch (error) {
+    console.error("记录用户交互失败:", error);
+    return res.status(500).json({
+      success: false,
+      message: "记录用户交互失败",
+      error: error.message,
+    });
+  } finally {
+    await session.close();
+  }
+};
+
+/**
+ * 协同过滤推荐（User-Based CF）
+ * 通过共同交互课程计算用户相似度，再汇总相似用户喜欢的课程
+ */
+exports.getCollaborativeRecommendations = async (req, res) => {
+  const session = driver.session();
+  const { userId } = req.params;
+  const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit, 10) || 12));
+  const { userIdStr, userIdInt } = parseUserId(userId);
+
+  try {
+    const neo4j = require("neo4j-driver");
+    const result = await session.run(
+      `
+      MATCH (u:Student)
+      WHERE u.student_id = $userIdInt OR u.id = $userIdInt OR toString(u.student_id) = $userIdStr OR toString(u.id) = $userIdStr
+      MATCH (u)-[r1:INTERACTED_WITH]->(c:Course)<-[r2:INTERACTED_WITH]-(other:Student)
+      WHERE other <> u
+      WITH u, other,
+           sum(coalesce(r1.score, 1) * coalesce(r2.score, 1)) AS dotProduct,
+           sqrt(sum(coalesce(r1.score, 1) * coalesce(r1.score, 1))) AS normU,
+           sqrt(sum(coalesce(r2.score, 1) * coalesce(r2.score, 1))) AS normOther
+      WITH u, other,
+           CASE
+             WHEN normU = 0 OR normOther = 0 THEN 0
+             ELSE dotProduct / (normU * normOther)
+           END AS similarity
+      WHERE similarity > 0
+      MATCH (other)-[or:INTERACTED_WITH]->(rc:Course)
+      WHERE NOT (u)-[:INTERACTED_WITH]->(rc)
+      WITH rc, sum(similarity * coalesce(or.score, 1)) AS recommendationScore, count(DISTINCT other) AS supporterCount
+      RETURN rc, recommendationScore, supporterCount
+      ORDER BY recommendationScore DESC, supporterCount DESC, coalesce(rc.rating, 0) DESC
+      LIMIT $limit
+      `,
+      { userIdStr, userIdInt, limit: neo4j.int(limit) },
+    );
+
+    if (result.records.length === 0) {
+      const fallback = await getPopularCourses(session, limit);
+      return res.json({
+        success: true,
+        algorithm: "collaborative_filtering",
+        fallback: true,
+        data: fallback,
+      });
+    }
+
+    const data = result.records.map((r) => ({
+      ...mapCourseData(r.get("rc").properties),
+      score: Number(r.get("recommendationScore")) || 0,
+      supporterCount: toNumber(r.get("supporterCount")) || 0,
+      reason: "similar_users_preference",
+    }));
+
+    return res.json({
+      success: true,
+      algorithm: "collaborative_filtering",
+      fallback: false,
+      data,
+    });
+  } catch (error) {
+    console.error("协同过滤推荐失败:", error);
+    return res.status(500).json({
+      success: false,
+      message: "协同过滤推荐失败",
+      error: error.message,
+    });
+  } finally {
+    await session.close();
+  }
+};
+
+/**
+ * 最短路径推荐
+ * 在图中寻找用户到课程的最短连接路径，路径越短相关性越强
+ */
+exports.getShortestPathRecommendations = async (req, res) => {
+  const session = driver.session();
+  const { userId } = req.params;
+  const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit, 10) || 12));
+  const maxDepth = Math.max(2, Math.min(8, Number.parseInt(req.query.maxDepth, 10) || 6));
+  const { userIdStr, userIdInt } = parseUserId(userId);
+
+  try {
+    const neo4j = require("neo4j-driver");
+
+    const diagnose = {
+      userFound: false,
+      userSchool: "",
+      usedSchoolRelation: false,
+      coldStartInteractedCount: 0,
+      sameSchoolPeerCount: 0,
+      sameSchoolCourseCount: 0,
+    };
+
+    // 冷启动：用户还没有学习行为时，优先走“同学校学生 -> 课程”的最短路径推荐
+    const coldStartCheck = await session.run(
+      `
+      MATCH (u:Student)
+      WHERE u.student_id = $userIdInt OR u.id = $userIdInt OR toString(u.student_id) = $userIdStr OR toString(u.id) = $userIdStr
+      OPTIONAL MATCH (u)-[:INTERACTED_WITH|ENROLLED_IN|ENROLLED_IN_COURSE|VIEWED|LIKED|COMPLETED]->(c:Course)
+      OPTIONAL MATCH (u)-[:STUDY_AT]->(mySchool:School)
+      RETURN u, count(c) AS interactedCount, mySchool
+      LIMIT 1
+      `,
+      { userIdStr, userIdInt },
+    );
+
+    if (coldStartCheck.records.length > 0) {
+      const userNode = coldStartCheck.records[0].get("u");
+      const interactedCount = toNumber(coldStartCheck.records[0].get("interactedCount")) || 0;
+      const schoolNode = coldStartCheck.records[0].get("mySchool");
+      const userProps = userNode && userNode.properties ? userNode.properties : {};
+      const schoolFromRelation =
+        schoolNode && schoolNode.properties && schoolNode.properties.name
+          ? String(schoolNode.properties.name).trim()
+          : "";
+      const schoolFromProperty = userProps.school ? String(userProps.school).trim() : "";
+      const school = schoolFromRelation || schoolFromProperty;
+
+      diagnose.userFound = true;
+      diagnose.coldStartInteractedCount = interactedCount;
+      diagnose.userSchool = school;
+      diagnose.usedSchoolRelation = Boolean(schoolFromRelation);
+
+      if (interactedCount === 0 && school) {
+        const sameSchoolPeerCountResult = await session.run(
+          `
+          MATCH (u:Student)
+          WHERE u.student_id = $userIdInt OR u.id = $userIdInt OR toString(u.student_id) = $userIdStr OR toString(u.id) = $userIdStr
+          OPTIONAL MATCH (u)-[:STUDY_AT]->(mySchool:School)
+          MATCH (peer:Student)
+          WHERE peer <> u AND (
+            (mySchool IS NOT NULL AND (peer)-[:STUDY_AT]->(mySchool))
+            OR toLower(trim(coalesce(peer.school, ''))) = toLower(trim($school))
+          )
+          RETURN count(DISTINCT peer) AS peerCount
+          `,
+          { userIdStr, userIdInt, school },
+        );
+        diagnose.sameSchoolPeerCount =
+          toNumber(sameSchoolPeerCountResult.records[0].get("peerCount")) || 0;
+
+        const schoolResult = await session.run(
+          `
+          MATCH (u:Student)
+          WHERE u.student_id = $userIdInt OR u.id = $userIdInt OR toString(u.student_id) = $userIdStr OR toString(u.id) = $userIdStr
+          OPTIONAL MATCH (u)-[:STUDY_AT]->(mySchool:School)
+          MATCH (peer:Student)
+          WHERE peer <> u AND (
+            (mySchool IS NOT NULL AND (peer)-[:STUDY_AT]->(mySchool))
+            OR toLower(trim(coalesce(peer.school, ''))) = toLower(trim($school))
+          )
+          MATCH (peer)-[r:INTERACTED_WITH|ENROLLED_IN|ENROLLED_IN_COURSE|VIEWED|LIKED|COMPLETED]->(rc:Course)
+          WHERE NOT (u)-[:INTERACTED_WITH|ENROLLED_IN|ENROLLED_IN_COURSE|VIEWED|LIKED|COMPLETED]->(rc)
+          WITH u, rc, count(DISTINCT peer) AS peerCount,
+               collect(DISTINCT coalesce(peer.name, peer.username, toString(peer.student_id), toString(peer.id), '同校同学'))[..5] AS peerNames
+          RETURN rc,
+                 2 AS pathLength,
+                 [coalesce(u.name, u.username, toString(u.student_id), toString(u.id), '我'),
+                  '同校',
+                  coalesce(rc.title, rc.name, '课程')] AS pathNodes,
+                 peerCount,
+                 peerNames
+          ORDER BY peerCount DESC, coalesce(rc.rating, 0) DESC, coalesce(rc.visits, 0) DESC
+          LIMIT $limit
+          `,
+          { userIdStr, userIdInt, school, limit: neo4j.int(limit) },
+        );
+        diagnose.sameSchoolCourseCount = schoolResult.records.length;
+
+        if (schoolResult.records.length > 0) {
+          const schoolData = schoolResult.records.map((r) => ({
+            ...mapCourseData(r.get("rc").properties),
+            pathLength: toNumber(r.get("pathLength")) || 2,
+            pathNodes: r.get("pathNodes") || [],
+            peerCount: toNumber(r.get("peerCount")) || 0,
+            peerNames: r.get("peerNames") || [],
+            reason: "shortest_graph_path_same_school",
+          }));
+
+          return res.json({
+            success: true,
+            algorithm: "shortest_path",
+            fallback: false,
+            coldStart: true,
+            data: schoolData,
+          });
+        }
+      }
+    }
+
+    const result = await session.run(
+      `
+      MATCH (u:Student)
+      WHERE u.student_id = $userIdInt OR u.id = $userIdInt OR toString(u.student_id) = $userIdStr OR toString(u.id) = $userIdStr
+      MATCH p = shortestPath(
+        (u)-[:INTERACTED_WITH|ENROLLED_IN|ENROLLED_IN_COURSE|VIEWED|LIKED|COMPLETED|FRIEND|CONTAINS*..${maxDepth}]-(rc:Course)
+      )
+      WHERE NOT (u)-[:INTERACTED_WITH|ENROLLED_IN|ENROLLED_IN_COURSE|VIEWED|LIKED|COMPLETED]->(rc)
+      RETURN rc, length(p) AS pathLength,
+             [n IN nodes(p) | coalesce(n.name, n.title, toString(n.student_id), toString(n.id), "unknown")] AS pathNodes
+      ORDER BY pathLength ASC, coalesce(rc.rating, 0) DESC, coalesce(rc.visits, 0) DESC
+      LIMIT $limit
+      `,
+      { userIdStr, userIdInt, limit: neo4j.int(limit) },
+    );
+
+    if (result.records.length === 0) {
+      const fallback = await getPopularCourses(session, limit);
+      return res.json({
+        success: true,
+        algorithm: "shortest_path",
+        fallback: true,
+        diagnose,
+        data: fallback,
+      });
+    }
+
+    const data = result.records.map((r) => ({
+      ...mapCourseData(r.get("rc").properties),
+      pathLength: toNumber(r.get("pathLength")) || null,
+      pathNodes: r.get("pathNodes") || [],
+      reason: "shortest_graph_path",
+    }));
+
+    return res.json({
+      success: true,
+      algorithm: "shortest_path",
+      fallback: false,
+      data,
+    });
+  } catch (error) {
+    console.error("最短路径推荐失败:", error);
+    return res.status(500).json({
+      success: false,
+      message: "最短路径推荐失败",
+      error: error.message,
+    });
+  } finally {
+    await session.close();
+  }
+};

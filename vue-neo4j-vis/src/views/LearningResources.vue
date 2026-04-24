@@ -141,6 +141,9 @@
           <div class="resource-content">
             <h3 class="resource-title">{{ resource.title }}</h3>
             <p class="resource-description">{{ resource.description }}</p>
+            <div v-if="resource.recommendationReason" class="recommend-reason">
+              推荐依据：{{ resource.recommendationReason }}
+            </div>
             <div class="resource-meta">
               <span class="resource-level">{{ resource.level }}</span>
               <span class="resource-duration">{{ resource.duration }}</span>
@@ -190,6 +193,56 @@
         </div>
       </div>
     </div>
+
+    <el-dialog
+      title="完善个人资料"
+      :visible.sync="profileDialogVisible"
+      width="480px"
+      :close-on-click-modal="!profileRequired"
+      :close-on-press-escape="!profileRequired"
+      :show-close="!profileRequired"
+    >
+      <el-form
+        ref="profileForm"
+        :model="studentProfileForm"
+        :rules="studentProfileRules"
+        label-width="90px"
+      >
+        <el-form-item label="学校" prop="school">
+          <el-input
+            v-model="studentProfileForm.school"
+            maxlength="64"
+            show-word-limit
+            placeholder="请输入你的学校名称"
+          />
+        </el-form-item>
+        <el-form-item label="性别" prop="gender">
+          <el-radio-group v-model="studentProfileForm.gender">
+            <el-radio label="男">男</el-radio>
+            <el-radio label="女">女</el-radio>
+            <el-radio label="其他">其他</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="注册时间">
+          <el-input :value="studentProfileForm.created_at || '自动获取中...'" disabled />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button
+          v-if="!profileRequired"
+          @click="profileDialogVisible = false"
+        >
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="profileSubmitting"
+          @click="submitStudentProfile"
+        >
+          保存资料
+        </el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -207,6 +260,18 @@ export default {
       pageSize: 12,
       totalCourses: 0,
       allCoursesData: [], // 存储所有课程数据
+      profileDialogVisible: false,
+      profileRequired: false,
+      profileSubmitting: false,
+      studentProfileForm: {
+        school: "",
+        gender: "",
+        created_at: "",
+      },
+      studentProfileRules: {
+        school: [{ required: true, message: "请输入学校名称", trigger: "blur" }],
+        gender: [{ required: true, message: "请选择性别", trigger: "change" }],
+      },
       navItems: [
         { key: "home", name: "首页", icon: "el-icon-house" },
         { key: "courses", name: "课程", icon: "el-icon-reading" },
@@ -352,6 +417,7 @@ export default {
         duration: course.duration || "未知",
         rating: course.rating || 0,
         category: this.getCategoryIdByName(course.category),
+        recommendationReason: this.getRecommendationReason(course),
       }));
 
       // 按分类筛选
@@ -399,35 +465,280 @@ export default {
   },
   mounted() {
     this.loadUserInfo();
+    this.checkStudentProfileStatus();
     this.loadCoursesFromNeo4j();
   },
   methods: {
+    authApiUrl(path) {
+      const raw = process.env.API_BASE;
+      const base =
+        raw != null && String(raw).length > 0
+          ? String(raw).replace(/\/$/, "")
+          : "";
+      const p = path.startsWith("/") ? path : `/${path}`;
+      return base ? `${base}${p}` : p;
+    },
+    getAuthHeaders() {
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return headers;
+    },
+    getRecommendationReason(course) {
+      if (!course) return "";
+
+      if (course.reason === "similar_users_preference") {
+        const supporterCount = course.supporterCount || 0;
+        const score =
+          course.score != null && !Number.isNaN(Number(course.score))
+            ? Number(course.score).toFixed(2)
+            : null;
+        if (score != null) {
+          return `协同过滤：${supporterCount} 位相似用户对该课程有正向反馈（推荐分 ${score}，reason=similar_users_preference）`;
+        }
+        return `协同过滤：${supporterCount} 位相似用户对该课程有正向反馈（reason=similar_users_preference）`;
+      }
+
+      if (course.reason === "shortest_graph_path") {
+        const pathLength =
+          course.pathLength !== undefined && course.pathLength !== null
+            ? course.pathLength
+            : "未知";
+        const pathNodes = Array.isArray(course.pathNodes)
+          ? course.pathNodes.filter(Boolean).slice(0, 5)
+          : [];
+        if (pathNodes.length > 0) {
+          return `最短路：你与课程的知识图谱最短路径为 ${pathLength} 跳（${pathNodes.join(" -> ")}，reason=shortest_graph_path）`;
+        }
+        return `最短路：你与课程的知识图谱最短路径为 ${pathLength} 跳（reason=shortest_graph_path）`;
+      }
+
+      if (course.reason === "shortest_graph_path_same_school") {
+        const peerCount = course.peerCount || 0;
+        const peerNames = Array.isArray(course.peerNames)
+          ? course.peerNames.filter(Boolean).slice(0, 3)
+          : [];
+        if (peerNames.length > 0) {
+          return `冷启动同校推荐：${peerCount} 位同校同学学习过该课程（例如：${peerNames.join("、")}，reason=shortest_graph_path_same_school）`;
+        }
+        return `冷启动同校推荐：${peerCount} 位同校同学学习过该课程（reason=shortest_graph_path_same_school）`;
+      }
+
+      if (course.reason === "popular_fallback") {
+        return "热门兜底：基于课程评分与访问热度（reason=popular_fallback）";
+      }
+
+      return "";
+    },
     loadUserInfo() {
       const userStr = localStorage.getItem("user");
       if (userStr) {
         this.currentUser = JSON.parse(userStr);
       }
     },
-    async loadCoursesFromNeo4j() {
+    async checkStudentProfileStatus() {
+      if (!this.currentUser || this.currentUser.role === "admin") return;
+
       try {
-        const response = await fetch("http://localhost:3000/api/neo4j/course");
+        const response = await fetch(
+          this.authApiUrl("/api/auth/student-profile/status"),
+          {
+            method: "GET",
+            headers: this.getAuthHeaders(),
+          },
+        );
+        if (!response.ok) return;
+
+        const result = await response.json();
+        const status = result.data || {};
+        if (!status.profileCompleted) {
+          this.studentProfileForm.school = status.school || "";
+          this.studentProfileForm.gender = status.gender || "";
+          this.studentProfileForm.created_at =
+            status.created_at || this.currentUser.created_at || "";
+          this.profileRequired = true;
+          this.profileDialogVisible = true;
+        }
+      } catch (error) {
+        console.warn("检查学生资料状态失败:", error);
+      }
+    },
+    async openProfileDialog() {
+      if (!this.currentUser || this.currentUser.role === "admin") {
+        this.$message.info("管理员无需填写学生资料");
+        return;
+      }
+
+      this.profileRequired = false;
+      this.studentProfileForm.created_at = this.currentUser.created_at || "";
+      try {
+        const response = await fetch(
+          this.authApiUrl("/api/auth/student-profile/status"),
+          {
+            method: "GET",
+            headers: this.getAuthHeaders(),
+          },
+        );
         if (response.ok) {
           const result = await response.json();
-
-          // 后端返回所有数据
-          const allCourses = result.data || result;
-
-          // 保存所有课程数据
-          this.allCoursesData = allCourses;
-
-          this.$message.success(`成功加载 ${allCourses.length} 个课程`);
-        } else {
-          console.error("Failed to fetch courses from Neo4j");
-          this.$message.warning("无法从Neo4j加载课程，使用默认数据");
+          const status = result.data || {};
+          this.studentProfileForm.school = status.school || "";
+          this.studentProfileForm.gender = status.gender || "";
+          this.studentProfileForm.created_at =
+            status.created_at ||
+            this.studentProfileForm.created_at ||
+            this.currentUser.created_at ||
+            "";
         }
+      } catch (error) {
+        console.warn("拉取学生资料失败:", error);
+      }
+
+      this.profileDialogVisible = true;
+    },
+    submitStudentProfile() {
+      if (!this.$refs.profileForm) return;
+
+      this.$refs.profileForm.validate(async (valid) => {
+        if (!valid) return;
+        this.profileSubmitting = true;
+        try {
+          const response = await fetch(
+            this.authApiUrl("/api/auth/student-profile"),
+            {
+              method: "POST",
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                school: this.studentProfileForm.school.trim(),
+                gender: this.studentProfileForm.gender,
+              }),
+            },
+          );
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || "保存资料失败");
+          }
+
+          this.studentProfileForm.created_at =
+            (result.data && result.data.created_at) ||
+            this.studentProfileForm.created_at;
+          this.profileDialogVisible = false;
+          this.profileRequired = false;
+          this.currentUser.profileCompleted = true;
+          localStorage.setItem("user", JSON.stringify(this.currentUser));
+          this.$message.success("资料完善成功");
+        } catch (error) {
+          this.$message.error(error.message || "保存资料失败");
+        } finally {
+          this.profileSubmitting = false;
+        }
+      });
+    },
+    getCurrentUserId() {
+      return this.currentUser.id || this.currentUser.student_id || null;
+    },
+    async fetchRecommendationByAlgorithm(algorithm, userId, limit = 50) {
+      const endpoint =
+        algorithm === "collaborative"
+          ? `http://localhost:3000/api/neo4j/recommendations/collaborative/${encodeURIComponent(userId)}?limit=${limit}`
+          : `http://localhost:3000/api/neo4j/recommendations/shortest-path/${encodeURIComponent(userId)}?limit=${limit}`;
+
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error(`推荐接口请求失败: ${response.status}`);
+      }
+      return await response.json();
+    },
+    async loadCoursesFromNeo4j() {
+      try {
+        const userId = this.getCurrentUserId();
+        if (userId != null) {
+          try {
+            const collaborativeResult =
+              await this.fetchRecommendationByAlgorithm(
+              "collaborative",
+              userId,
+              100,
+              );
+            const collaborativeData = collaborativeResult.data || [];
+
+            // 协同过滤仅在非 fallback 时采用，否则继续尝试最短路
+            if (
+              collaborativeData.length > 0 &&
+              collaborativeResult.fallback === false
+            ) {
+              this.allCoursesData = collaborativeData;
+              this.$message.success(
+                `已加载 ${collaborativeData.length} 条协同过滤推荐`,
+              );
+              return;
+            }
+          } catch (err) {
+            console.warn("协同过滤推荐失败，尝试最短路径推荐:", err);
+          }
+
+          try {
+            const shortestPathResult = await this.fetchRecommendationByAlgorithm(
+              "shortest",
+              userId,
+              100,
+            );
+            const shortestPathData = shortestPathResult.data || [];
+            if (
+              shortestPathData.length > 0 &&
+              shortestPathResult.fallback === false
+            ) {
+              this.allCoursesData = shortestPathData;
+              this.$message.success(
+                `已加载 ${shortestPathData.length} 条最短路径推荐`,
+              );
+              return;
+            }
+
+            if (
+              shortestPathData.length > 0 &&
+              shortestPathResult.fallback === true
+            ) {
+              console.warn("最短路径接口返回兜底结果，原因可能是图中无可达路径");
+            }
+          } catch (err) {
+            console.warn("最短路径推荐失败，回退全量课程:", err);
+          }
+        }
+
+        // 推荐失败时回退到全量课程
+        const response = await fetch("http://localhost:3000/api/neo4j/course");
+        if (!response.ok) {
+          throw new Error("无法从Neo4j加载课程");
+        }
+
+        const result = await response.json();
+        const allCourses = result.data || result;
+        this.allCoursesData = allCourses;
+        this.$message.success(`成功加载 ${allCourses.length} 个课程`);
       } catch (error) {
         console.error("Error loading courses:", error);
         this.$message.warning("加载课程失败，使用默认数据");
+      }
+    },
+    async recordCourseInteraction(course, interactionType = "view") {
+      const userId = this.getCurrentUserId();
+      if (userId == null || !course || !course.id) return;
+
+      try {
+        await fetch("http://localhost:3000/api/neo4j/interactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            courseId: course.id,
+            interactionType,
+          }),
+        });
+      } catch (error) {
+        console.warn("记录课程交互失败:", error);
       }
     },
     getCategoryIdByName(categoryName) {
@@ -452,7 +763,7 @@ export default {
     handleUserCommand(command) {
       switch (command) {
         case "profile":
-          this.$message.info("个人资料功能开发中...");
+          this.openProfileDialog();
           break;
         case "settings":
           this.$message.info("设置功能开发中...");
@@ -494,6 +805,7 @@ export default {
     },
     viewResource(resource) {
       this.$message.success("正在打开: " + resource.title);
+      this.recordCourseInteraction(resource, "view");
       // 这里可以跳转到资源详情页面
     },
     handlePageChange(page) {
@@ -824,6 +1136,16 @@ export default {
   font-size: 14px;
   line-height: 1.5;
   margin-bottom: 15px;
+}
+
+.recommend-reason {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f5f7ff;
+  color: #4a56a8;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .resource-meta {
