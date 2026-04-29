@@ -220,7 +220,6 @@
           <el-radio-group v-model="studentProfileForm.gender">
             <el-radio label="男">男</el-radio>
             <el-radio label="女">女</el-radio>
-            <el-radio label="其他">其他</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="注册时间">

@@ -1,0 +1,164 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="后端架构图" id="backend-architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- 标题 -->
+        <mxCell id="title" value="后端架构图 (Backend Architecture)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1a1a1a" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 入口层 ==================== -->
+        <mxCell id="entryLayer" value="入口层 (Entry)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="1120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="appJs" value="app.js&#xa;应用入口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#42b883;strokeColor=#42b883;fontSize=12;fontColor=#ffffff;fontStyle=1" vertex="1" parent="entryLayer">
+          <mxGeometry x="30" y="35" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="env" value=".env&#xa;环境配置" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="entryLayer">
+          <mxGeometry x="150" y="35" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="package" value="package.json&#xa;依赖配置" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="entryLayer">
+          <mxGeometry x="250" y="35" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 运行时层 ==================== -->
+        <mxCell id="runtimeLayer" value="运行时层 (Runtime)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="1120" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="nodejs" value="Node.js&#xa;JavaScript运行时" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#68a063;strokeColor=#68a063;fontSize=12;fontColor=#ffffff;fontStyle=1" vertex="1" parent="runtimeLayer">
+          <mxGeometry x="30" y="35" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="express" value="Express.js&#xa;Web应用框架" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#82b366;fontSize=11" vertex="1" parent="runtimeLayer">
+          <mxGeometry x="170" y="35" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="cors" value="CORS&#xa;跨域中间件" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#82b366;fontSize=11" vertex="1" parent="runtimeLayer">
+          <mxGeometry x="290" y="35" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="jsonParser" value="express.json&#xa;JSON解析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#82b366;fontSize=11" vertex="1" parent="runtimeLayer">
+          <mxGeometry x="390" y="35" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 路由层 ==================== -->
+        <mxCell id="routeLayer" value="路由层 (Routes)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1120" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="authRoutes" value="auth.routes.js&#xa;认证路由&#xa;/api/auth/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="routeLayer">
+          <mxGeometry x="30" y="35" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="neo4jRoutes" value="neo4j.routes.js&#xa;数据/推荐路由&#xa;/api/neo4j/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="routeLayer">
+          <mxGeometry x="180" y="35" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="apiList" value="API列表:&#xa;POST /api/auth/register&#xa;POST /api/auth/login&#xa;GET  /api/neo4j/courses&#xa;GET  /api/neo4j/recommendations/collaborative/:userId&#xa;GET  /api/neo4j/recommendations/shortest-path/:userId&#xa;POST /api/neo4j/interactions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8e8e8;strokeColor=#666666;fontSize=10;fontFamily=Courier New" vertex="1" parent="routeLayer">
+          <mxGeometry x="360" y="25" width="730" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 控制器层 ==================== -->
+        <mxCell id="controllerLayer" value="控制器层 (Controllers)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="600" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="neo4jController" value="neo4j.controller.js&#xa;&#xa;核心方法:&#xa;• getAllCourses() - 获取所有课程&#xa;• getCourseById() - 按ID获取课程&#xa;• getCollaborativeRecommendations() - 协同过滤推荐&#xa;• getShortestPathRecommendations() - 最短路推荐&#xa;• recordUserInteraction() - 记录用户交互" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=10" vertex="1" parent="controllerLayer">
+          <mxGeometry x="20" y="35" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="authController" value="auth.routes.js&#xa;(内含认证逻辑)&#xa;&#xa;核心方法:&#xa;• bcryptjs - 密码加密&#xa;• JWT - Token生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=10" vertex="1" parent="controllerLayer">
+          <mxGeometry x="320" y="35" width="260" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 服务层 ==================== -->
+        <mxCell id="serviceLayer" value="服务层 (Services)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="670" y="420" width="490" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="syncService" value="syncStudentToNeo4j.js&#xa;&#xa;用户同步服务:&#xa;• 用户注册时同步到Neo4j&#xa;• 维护SQLite与Neo4j用户一致性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10" vertex="1" parent="serviceLayer">
+          <mxGeometry x="20" y="35" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="seedService" value="scripts/&#xa;数据脚本&#xa;&#xa;• seed-courses.js - 课程数据导入&#xa;• restore-courses.js - 课程数据恢复" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10" vertex="1" parent="serviceLayer">
+          <mxGeometry x="260" y="35" width="210" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 数据层 ==================== -->
+        <mxCell id="dataLayer" value="数据层 (Data)" style="swimlane;fontSize=13;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="1120" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Neo4j -->
+        <mxCell id="neo4jDb" value="Neo4j 图数据库" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=20;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1" vertex="1" parent="dataLayer">
+          <mxGeometry x="50" y="50" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="neo4jConfig" value="config/neo4j.js&#xa;数据库驱动配置" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="dataLayer">
+          <mxGeometry x="250" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="neo4jNodes" value="节点: Student, Course,&#xa;Discipline, SubDiscipline" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#333333" vertex="1" parent="dataLayer">
+          <mxGeometry x="250" y="85" width="150" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="neo4jRels" value="关系: INTERACTED_WITH,&#xa;ENROLLED_IN, CONTAINS" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#333333" vertex="1" parent="dataLayer">
+          <mxGeometry x="250" y="105" width="150" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- SQLite -->
+        <mxCell id="sqliteDb" value="SQLite 数据库" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=20;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" vertex="1" parent="dataLayer">
+          <mxGeometry x="450" y="50" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sqliteConfig" value="db/sqlite.js&#xa;数据库初始化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="dataLayer">
+          <mxGeometry x="650" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="sqliteSchema" value="表: users&#xa;id, username,&#xa;password_hash, role,&#xa;created_at" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#333333" vertex="1" parent="dataLayer">
+          <mxGeometry x="650" y="85" width="130" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 推荐算法 -->
+        <mxCell id="recEngine" value="推荐引擎" style="swimlane;fontSize=12;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;startSize=18" vertex="1" parent="dataLayer">
+          <mxGeometry x="810" y="40" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabAlgo" value="协同过滤算法&#xa;基于用户相似度" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#9673a6;fontSize=10" vertex="1" parent="recEngine">
+          <mxGeometry x="10" y="35" width="125" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortestAlgo" value="最短路算法&#xa;基于图路径" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#9673a6;fontSize=10" vertex="1" parent="recEngine">
+          <mxGeometry x="145" y="35" width="125" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 连接线 ==================== -->
+        <mxCell id="arr1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="entryLayer" target="runtimeLayer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="runtimeLayer" target="routeLayer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="routeLayer" target="controllerLayer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="routeLayer" target="serviceLayer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="915" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr5" value="查询数据" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;dashed=1" edge="1" parent="1" source="controllerLayer" target="dataLayer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr6" value="同步用户" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="serviceLayer" target="dataLayer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 图例 ==================== -->
+        <mxCell id="legend" value="技术栈" style="swimlane;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;startSize=18" vertex="1" parent="1">
+          <mxGeometry x="40" y="730" width="1120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="Node.js + Express.js + CORS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="150" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="neo4j-driver + bcryptjs + jsonwebtoken" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="190" y="30" width="220" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="better-sqlite3 + Cypher查询" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="430" y="30" width="180" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="端口: 3000 | CORS: 允许所有源" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="630" y="30" width="200" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

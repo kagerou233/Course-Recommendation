@@ -1,0 +1,247 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="推荐算法流程图" id="algorithm-flow">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="推荐算法流程图 (含冷启动处理)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1a1a1a" vertex="1" parent="1">
+          <mxGeometry x="550" y="20" width="600" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="start" value="开始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#42b883;strokeColor=#333333;fontSize=14;fontColor=#ffffff;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="780" y="80" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="step1" value="用户请求推荐&#xa;/api/neo4j/recommendations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="730" y="150" width="200" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="step2" value="获取用户ID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="730" y="220" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="coldStartCheck" value="检查用户交互记录&#xa;是否存在?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="720" y="290" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="coldStartYes" value="冷启动用户&#xa;(无交互记录)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontColor=#b85450;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="620" y="300" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="coldStartNo" value="有交互记录用户" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="960" y="300" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="coldStartHandler" value="冷启动处理策略" style="swimlane;fontSize=13;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="520" y="395" width="400" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold1" value="策略1: 基于用户属性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="20" y="45" width="170" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold1Detail" value="根据专业、年级等&#xa;推荐热门课程" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="20" y="85" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold2" value="策略2: 热门推荐" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="210" y="45" width="170" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold2Detail" value="按课程热度排序&#xa;返回热门课程" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="210" y="85" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold3" value="策略3: 学科推荐" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="20" y="140" width="170" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold3Detail" value="推荐入门级、高评分&#xa;的基础课程" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="20" y="180" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold4" value="策略4: 最新课程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="210" y="140" width="170" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cold4Detail" value="按发布时间排序&#xa;返回最新课程" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="210" y="180" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="coldResult" value="返回冷启动推荐结果" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="coldStartHandler">
+          <mxGeometry x="120" y="220" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="normalHandler" value="正常用户推荐" style="swimlane;fontSize=13;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;startSize=22;horizontal=0" vertex="1" parent="1">
+          <mxGeometry x="950" y="395" width="700" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="algoSelect" value="选择推荐算法?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="normalHandler">
+          <mxGeometry x="280" y="40" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabBranch" value="协同过滤算法" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#42b883;fontStyle=1" vertex="1" parent="normalHandler">
+          <mxGeometry x="180" y="20" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabStep1" value="1. 获取用户交互的课程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="30" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabStep2" value="2. 找到相似用户" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="30" y="160" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabStep3" value="3. 获取相似用户喜欢的课程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="250" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabStep4" value="4. 过滤用户已交互课程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="250" y="160" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabStep5" value="5. 按推荐分数排序返回TOP10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="470" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="collabResult" value="返回协同过滤推荐结果" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="470" y="200" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortestBranch" value="最短路算法" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#d79b00;fontStyle=1" vertex="1" parent="normalHandler">
+          <mxGeometry x="460" y="20" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortStep1" value="1. 获取用户当前课程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="30" y="200" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortStep2" value="2. 查找相邻课程(路径长度1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="250" y="200" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortStep3" value="3. 扩展路径(长度2,3...)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="470" y="200" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="shortResult" value="返回最短路推荐结果" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="normalHandler">
+          <mxGeometry x="470" y="250" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="merge" value="合并推荐结果" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="720" y="680" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="blend" value="结果融合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="740" y="770" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="weight" value="权重分配:&#xa;协同过滤(0.6) + 最短路(0.4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8e8e8;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="940" y="770" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="return" value="返回推荐结果给前端" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="740" y="840" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="end" value="结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#42b883;strokeColor=#333333;fontSize=14;fontColor=#ffffff;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="780" y="910" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="start" target="step1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="step2" target="coldStartCheck">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr4" value="否" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#82b366" edge="1" parent="1" source="coldStartCheck" target="coldStartNo">
+          <mxGeometry x="20" y="10" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr5" value="是" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#b85450" edge="1" parent="1" source="coldStartCheck" target="coldStartYes">
+          <mxGeometry x="-20" y="10" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr6" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450" edge="1" parent="1" source="coldStartYes" target="coldStartHandler">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr7" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366" edge="1" parent="1" source="coldStartNo" target="normalHandler">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr8" value="协同过滤" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#42b883" edge="1" parent="1" source="algoSelect" target="collabBranch">
+          <mxGeometry x="-30" y="-5" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr9" value="最短路" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#d79b00" edge="1" parent="1" source="algoSelect" target="shortestBranch">
+          <mxGeometry x="30" y="-5" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab1" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883;dashed=1" edge="1" parent="1" source="algoSelect" target="collabStep1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883" edge="1" parent="1" source="collabStep1" target="collabStep2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab3" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883" edge="1" parent="1" source="collabStep2" target="collabStep3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab4" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883" edge="1" parent="1" source="collabStep3" target="collabStep4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab5" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883" edge="1" parent="1" source="collabStep4" target="collabStep5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrCollab6" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#42b883" edge="1" parent="1" source="collabStep5" target="collabResult">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrShort1" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#d79b00;dashed=1" edge="1" parent="1" source="algoSelect" target="shortStep1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrShort2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#d79b00" edge="1" parent="1" source="shortStep1" target="shortStep2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrShort3" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#d79b00" edge="1" parent="1" source="shortStep2" target="shortStep3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrShort4" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#d79b00" edge="1" parent="1" source="shortStep3" target="shortResult">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrNormalToMerge" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366" edge="1" parent="1" source="normalHandler" target="merge">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrColdToMerge" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450" edge="1" parent="1" source="coldResult" target="merge">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr10" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="merge" target="blend">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr11" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="blend" target="weight">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr12" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="weight" target="return">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr13" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333" edge="1" parent="1" source="return" target="end">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend" value="图例" style="swimlane;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;startSize=18" vertex="1" parent="1">
+          <mxGeometry x="50" y="850" width="550" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="legStart" value="开始/结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#42b883;strokeColor=#333333;fontSize=10;fontColor=#ffffff" vertex="1" parent="legend">
+          <mxGeometry x="20" y="40" width="70" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legProcess" value="处理步骤" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="110" y="40" width="70" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legDecision" value="判断条件" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9" vertex="1" parent="legend">
+          <mxGeometry x="200" y="35" width="60" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="legCold" value="冷启动" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="280" y="40" width="60" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legNormal" value="正常" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="legend">
+          <mxGeometry x="360" y="40" width="60" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legNote" value="冷启动: 新用户无交互记录时，采用热门推荐、学科推荐等策略" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#666666" vertex="1" parent="legend">
+          <mxGeometry x="20" y="75" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="queryBox" value="Cypher查询示例" style="swimlane;fontSize=12;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;startSize=18" vertex="1" parent="1">
+          <mxGeometry x="1150" y="100" width="500" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="query1Title" value="协同过滤:" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;fontColor=#333333" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="35" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="query1" value="MATCH (s:Student {student_id: $userId})-[:INTERACTED_WITH]->(c:Course)&#xa;WITH s, collect(c) as userCourses&#xa;&#xa;MATCH (s)-[:INTERACTED_WITH]->(c:Course)<-[:INTERACTED_WITH]-(other:Student)&#xa;WHERE other <> s&#xa;WITH s, other, count(c) as common ORDER BY common DESC LIMIT 10&#xa;&#xa;MATCH (other)-[:INTERACTED_WITH]->(rec:Course)&#xa;WHERE NOT rec IN userCourses&#xa;RETURN rec, count(DISTINCT other) as score ORDER BY score DESC LIMIT 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=8;fontFamily=Courier New;align=left" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="55" width="480" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="query2Title" value="最短路:" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;fontColor=#333333" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="165" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="query2" value="MATCH (s:Student {student_id: $userId})-[:ENROLLED_IN]->(c:Course)&#xa;MATCH path = (c)-[:CONTAINS*1..3]->(rec:Course)&#xa;WHERE NOT (s)-[:ENROLLED_IN]->(rec)&#xa;RETURN rec, min(length(path)) as distance ORDER BY distance ASC LIMIT 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=8;fontFamily=Courier New;align=left" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="185" width="480" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="query3Title" value="热门推荐(冷启动):" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;fontColor=#333333" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="265" width="130" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="query3" value="MATCH (c:Course)&#xa;WHERE c.level = 'beginner'&#xa;RETURN c ORDER BY c.published_at DESC LIMIT 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=8;fontFamily=Courier New;align=left" vertex="1" parent="queryBox">
+          <mxGeometry x="10" y="285" width="480" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="weightBox" value="结果融合权重" style="swimlane;fontSize=11;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;startSize=16" vertex="1" parent="1">
+          <mxGeometry x="1150" y="520" width="500" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="weightFormula" value="最终分数 = 0.6 x 协同过滤分数 + 0.4 x 最短路分数" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#9673a6;fontSize=11;fontFamily=Courier New" vertex="1" parent="weightBox">
+          <mxGeometry x="20" y="40" width="460" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="weightNote1" value="协同过滤权重0.6: 适合有相似用户偏好的场景" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="weightBox">
+          <mxGeometry x="20" y="85" width="460" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="weightNote2" value="最短路权重0.4: 适合课程间有强关联性的场景" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="weightBox">
+          <mxGeometry x="20" y="105" width="460" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
