@@ -6,6 +6,7 @@ const ctrl = require("../controllers/neo4j.controller");
 router.post("/users", ctrl.createUser);
 router.get("/users", ctrl.getUsers); // 获取所有学生和教师
 router.get("/users/all", ctrl.getAllUsers); // 保留原有的方法
+router.get("/users/id/:id", ctrl.getUserById);
 router.get("/users/:name", ctrl.getUserByName);
 router.put("/users", ctrl.updateUser);
 router.delete("/users/:id", ctrl.deleteUser); // 更新为按ID删除
@@ -23,8 +24,9 @@ router.delete("/course/:id", ctrl.deleteCourse);
 router.get("/disciplines", ctrl.getDisciplines);
 router.put("/disciplines", ctrl.updateDisciplineName);
 
-// User Interaction & Recommendations
+// User Interaction & Learning List
 router.post("/interactions", ctrl.recordUserInteraction);
+router.post("/enrollments", ctrl.addCourseToLearningList);
 router.get(
   "/recommendations/collaborative/:userId",
   ctrl.getCollaborativeRecommendations,

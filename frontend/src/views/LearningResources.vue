@@ -89,7 +89,58 @@
       </div>
     </div>
 
-    <!-- 分类导航 -->
+    <!-- 推荐资源 -->
+    <div class="resources-section">
+      <div class="section-title">
+        <h2>推荐资源</h2>
+      </div>
+      <div class="carousel-toolbar">
+        <el-button icon="el-icon-arrow-left" circle @click="prevRecommendationPage" :disabled="recommendationPage === 0"></el-button>
+        <div class="carousel-hint">每次显示 5 个课程</div>
+        <el-button icon="el-icon-arrow-right" circle @click="nextRecommendationPage" :disabled="!hasNextRecommendationPage"></el-button>
+      </div>
+      <div class="recommendation-carousel">
+        <div class="recommendation-track" :style="recommendationTrackStyle">
+          <div
+            v-for="resource in recommendationList"
+            :key="'rec-' + resource.id"
+            class="resource-card recommendation-card"
+          >
+            <div class="resource-image" @click="viewResource(resource)">
+              <img :src="resource.image" :alt="resource.title" />
+              <div class="resource-type">{{ resource.type }}</div>
+            </div>
+            <div class="resource-content">
+              <h3 class="resource-title" @click="viewResource(resource)">{{ resource.title }}</h3>
+              <p class="resource-description">{{ resource.description }}</p>
+              <div v-if="resource.recommendationReason" class="recommend-reason">
+                推荐依据：{{ resource.recommendationReason }}
+              </div>
+              <div class="resource-meta">
+                <span class="resource-level">{{ resource.level }}</span>
+                <span class="resource-duration">{{ resource.duration }}</span>
+                <span class="resource-rating">
+                  <i class="el-icon-star-on"></i>
+                  {{ resource.rating }}
+                </span>
+              </div>
+              <el-button
+                class="learning-list-btn"
+                :type="isCourseInLearningList(resource) ? 'success' : 'primary'"
+                size="mini"
+                plain
+                :disabled="isCourseInLearningList(resource)"
+                @click.stop="addToLearningList(resource)"
+              >
+                {{ isCourseInLearningList(resource) ? '已加入学习清单' : '加入学习清单' }}
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学习分类 -->
     <div class="category-section">
       <div class="section-title">
         <h2>学习分类</h2>
@@ -108,38 +159,37 @@
           <div class="category-count">{{ category.count }}个资源</div>
         </div>
       </div>
+
+      <div v-if="filters.length > 1" class="filter-tabs category-filter-tabs">
+        <el-button
+          v-for="filter in filters"
+          :key="filter.key"
+          :type="activeFilter === filter.key ? 'primary' : ''"
+          size="small"
+          @click="setFilter(filter.key)"
+        >
+          {{ filter.name }}
+        </el-button>
+      </div>
     </div>
 
-    <!-- 推荐资源 -->
-    <div class="resources-section">
+    <!-- 分类课程 -->
+    <div class="resources-section category-courses-section">
       <div class="section-title">
-        <h2>{{ selectedCategory ? selectedCategory.name : "推荐资源" }}</h2>
-        <div class="filter-tabs">
-          <el-button
-            v-for="filter in filters"
-            :key="filter.key"
-            :type="activeFilter === filter.key ? 'primary' : ''"
-            size="small"
-            @click="setFilter(filter.key)"
-          >
-            {{ filter.name }}
-          </el-button>
-        </div>
+        <h2>{{ selectedCategory ? selectedCategory.name + '课程' : '分类课程' }}</h2>
       </div>
-
-      <div class="resources-grid">
+      <div class="resources-grid category-grid-paged">
         <div
-          v-for="resource in filteredResources"
-          :key="resource.id"
+          v-for="resource in categoryCourseResources"
+          :key="'category-' + resource.id"
           class="resource-card"
-          @click="viewResource(resource)"
         >
-          <div class="resource-image">
+          <div class="resource-image" @click="viewResource(resource)">
             <img :src="resource.image" :alt="resource.title" />
             <div class="resource-type">{{ resource.type }}</div>
           </div>
           <div class="resource-content">
-            <h3 class="resource-title">{{ resource.title }}</h3>
+            <h3 class="resource-title" @click="viewResource(resource)">{{ resource.title }}</h3>
             <p class="resource-description">{{ resource.description }}</p>
             <div v-if="resource.recommendationReason" class="recommend-reason">
               推荐依据：{{ resource.recommendationReason }}
@@ -152,11 +202,20 @@
                 {{ resource.rating }}
               </span>
             </div>
+            <el-button
+              class="learning-list-btn"
+              :type="isCourseInLearningList(resource) ? 'success' : 'primary'"
+              size="mini"
+              plain
+              :disabled="isCourseInLearningList(resource)"
+              @click.stop="addToLearningList(resource)"
+            >
+              {{ isCourseInLearningList(resource) ? '已加入学习清单' : '加入学习清单' }}
+            </el-button>
           </div>
         </div>
       </div>
 
-      <!-- 分页组件 -->
       <div class="pagination-section">
         <el-pagination
           @current-change="handlePageChange"
@@ -255,9 +314,11 @@ export default {
       activeFilter: "all",
       activeNav: "home",
       currentUser: {},
+      userLearningStats: { interactionCount: 0 },
       currentPage: 1,
       pageSize: 12,
       totalCourses: 0,
+      recommendationPage: 0,
       allCoursesData: [], // 存储所有课程数据
       profileDialogVisible: false,
       profileRequired: false,
@@ -302,23 +363,8 @@ export default {
             "https://via.placeholder.com/800x200/f093fb/ffffff?text=数据科学",
         },
       ],
-      categories: [
-        { id: 1, name: "编程开发", icon: "el-icon-monitor", count: 156 },
-        { id: 2, name: "数据科学", icon: "el-icon-pie-chart", count: 89 },
-        { id: 3, name: "人工智能", icon: "el-icon-cpu", count: 67 },
-        { id: 4, name: "前端开发", icon: "el-icon-mobile-phone", count: 134 },
-        { id: 5, name: "后端开发", icon: "el-icon-server", count: 98 },
-        { id: 6, name: "移动开发", icon: "el-icon-phone", count: 76 },
-        { id: 7, name: "云计算", icon: "el-icon-cloudy", count: 54 },
-        { id: 8, name: "网络安全", icon: "el-icon-lock", count: 43 },
-      ],
-      filters: [
-        { key: "all", name: "全部" },
-        { key: "video", name: "视频课程" },
-        { key: "article", name: "文章教程" },
-        { key: "project", name: "实战项目" },
-        { key: "book", name: "电子书籍" },
-      ],
+      categories: [],
+      filters: [{ key: "all", name: "全部" }],
       resources: [
         {
           id: 1,
@@ -416,6 +462,7 @@ export default {
         duration: course.duration || "未知",
         rating: course.rating || 0,
         category: this.getCategoryIdByName(course.category),
+        subDiscipline: course.subDiscipline || course.sub_discipline || course.subCategory || "",
         recommendationReason: this.getRecommendationReason(course),
       }));
 
@@ -426,17 +473,12 @@ export default {
         );
       }
 
-      // 按类型筛选
+      // 按子学科筛选（由所选学科动态生成）
       if (this.activeFilter !== "all") {
-        const filterMap = {
-          video: "视频课程",
-          article: "文章教程",
-          project: "实战项目",
-          book: "电子书籍",
-        };
-        filtered = filtered.filter(
-          (resource) => resource.type === filterMap[this.activeFilter],
-        );
+        filtered = filtered.filter((resource) => {
+          const subName = String(resource.subDiscipline || resource.subCategory || "").trim();
+          return subName === this.activeFilter;
+        });
       }
 
       // 按搜索关键词筛选
@@ -461,10 +503,28 @@ export default {
 
       return filtered.slice(start, end);
     },
+    categoryCourseResources() {
+      return this.filteredResources;
+    },
+    recommendationList() {
+      return this.filteredResources;
+    },
+    recommendationTrackStyle() {
+      const width = Math.ceil(this.recommendationList.length / 5) * 100;
+      const translate = this.recommendationPage * -100;
+      return {
+        width: `${width}%`,
+        transform: `translateX(${translate}%)`,
+      };
+    },
+    hasNextRecommendationPage() {
+      return (this.recommendationPage + 1) * 5 < this.recommendationList.length;
+    },
   },
   mounted() {
     this.loadUserInfo();
     this.checkStudentProfileStatus();
+    this.loadDisciplinesFromAdmin();
     this.loadCoursesFromNeo4j();
   },
   methods: {
@@ -484,6 +544,39 @@ export default {
         headers.Authorization = `Bearer ${token}`;
       }
       return headers;
+    },
+    async loadDisciplinesFromAdmin() {
+      try {
+        const response = await fetch("http://localhost:3000/api/neo4j/disciplines");
+        if (!response.ok) {
+          throw new Error(`加载学习分类失败: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const list = (result.data || []).map((item, index) => ({
+          id: index + 1,
+          name: item.name,
+          icon: this.getCategoryIcon(item.name),
+          count: Number(item.courseCount || 0),
+          subDisciplines: Array.isArray(item.subDisciplines) ? item.subDisciplines : [],
+        }));
+
+        this.categories = list;
+      } catch (error) {
+        console.warn("加载学习分类失败:", error);
+        this.categories = [];
+      }
+    },
+    getCategoryIcon(categoryName) {
+      const name = String(categoryName || "");
+      if (name.includes("前端")) return "el-icon-mobile-phone";
+      if (name.includes("后端")) return "el-icon-server";
+      if (name.includes("人工智能") || name.includes("AI")) return "el-icon-cpu";
+      if (name.includes("数据")) return "el-icon-pie-chart";
+      if (name.includes("安全")) return "el-icon-lock";
+      if (name.includes("云")) return "el-icon-cloudy";
+      if (name.includes("移动")) return "el-icon-phone";
+      return "el-icon-reading";
     },
     getRecommendationReason(course) {
       if (!course) return "";
@@ -650,76 +743,142 @@ export default {
       }
       return await response.json();
     },
+    getUserInteractionCount() {
+      return Number(this.userLearningStats.interactionCount || 0);
+    },
+    hasLearningHistory() {
+      return Boolean(this.userLearningStats && Number(this.userLearningStats.interactionCount || 0) > 0);
+    },
+    isCourseInLearningList(course) {
+      const ids = Array.isArray(this.userLearningStats.courseIds) ? this.userLearningStats.courseIds.map((id) => String(id)) : [];
+      return course && course.id != null ? ids.includes(String(course.id)) : false;
+    },
+    async fetchUserLearningStats() {
+      const userId = this.getCurrentUserId();
+      if (userId == null) {
+        this.userLearningStats = { interactionCount: 0, courseIds: [] };
+        return this.userLearningStats;
+      }
+
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/neo4j/users/id/${encodeURIComponent(userId)}`,
+        );
+        if (!response.ok) throw new Error(`获取用户信息失败: ${response.status}`);
+        const result = await response.json();
+        const user = result.data || result;
+        this.userLearningStats = {
+          interactionCount: Number(user.coursesCount || user.completedCourses || user.learningCount || 0),
+          courseIds: Array.isArray(user.courseIds) ? user.courseIds : [],
+        };
+        return this.userLearningStats;
+      } catch (error) {
+        console.warn("获取用户学习统计失败:", error);
+        this.userLearningStats = { interactionCount: 0 };
+        return this.userLearningStats;
+      }
+    },
     async loadCoursesFromNeo4j() {
       try {
         const userId = this.getCurrentUserId();
         if (userId != null) {
-          try {
-            const collaborativeResult =
-              await this.fetchRecommendationByAlgorithm(
-              "collaborative",
-              userId,
-              100,
-              );
-            const collaborativeData = collaborativeResult.data || [];
-
-            // 协同过滤仅在非 fallback 时采用，否则继续尝试最短路
-            if (
-              collaborativeData.length > 0 &&
-              collaborativeResult.fallback === false
-            ) {
-              this.allCoursesData = collaborativeData;
-              this.$message.success(
-                `已加载 ${collaborativeData.length} 条协同过滤推荐`,
-              );
-              return;
-            }
-          } catch (err) {
-            console.warn("协同过滤推荐失败，尝试最短路径推荐:", err);
-          }
-
-          try {
+          await this.fetchUserLearningStats();
+          if (!this.hasLearningHistory()) {
             const shortestPathResult = await this.fetchRecommendationByAlgorithm(
               "shortest",
               userId,
               100,
             );
             const shortestPathData = shortestPathResult.data || [];
-            if (
-              shortestPathData.length > 0 &&
-              shortestPathResult.fallback === false
-            ) {
+            if (shortestPathData.length > 0) {
               this.allCoursesData = shortestPathData;
               this.$message.success(
-                `已加载 ${shortestPathData.length} 条最短路径推荐`,
+                shortestPathResult.coldStart === true
+                  ? `已加载 ${shortestPathData.length} 条冷启动最短路径推荐`
+                  : `已加载 ${shortestPathData.length} 条最短路径推荐`,
               );
               return;
             }
+          } else {
+            try {
+              const collaborativeResult =
+                await this.fetchRecommendationByAlgorithm(
+                  "collaborative",
+                  userId,
+                  100,
+                );
+              const collaborativeData = collaborativeResult.data || [];
+              const collaborativeValid = collaborativeData.length > 0 && collaborativeResult.fallback === false;
 
-            if (
-              shortestPathData.length > 0 &&
-              shortestPathResult.fallback === true
-            ) {
-              console.warn("最短路径接口返回兜底结果，原因可能是图中无可达路径");
+              const shortestPathResult = await this.fetchRecommendationByAlgorithm(
+                "shortest",
+                userId,
+                100,
+              );
+              const shortestPathData = shortestPathResult.data || [];
+              const shortestPathValid = shortestPathData.length > 0 && shortestPathResult.fallback === false;
+
+              if (collaborativeValid && shortestPathValid) {
+                const merged = new Map();
+                collaborativeData.forEach((item, index) => {
+                  merged.set(String(item.id), {
+                    ...item,
+                    hybridScore: (Number(item.score) || 0) * 0.7 + (100 - index),
+                    recommendSource: "协同过滤",
+                  });
+                });
+                shortestPathData.forEach((item, index) => {
+                  const key = String(item.id);
+                  const current = merged.get(key) || { ...item };
+                  const pathScore = item.pathLength ? 1 / Number(item.pathLength) : 0;
+                  merged.set(key, {
+                    ...current,
+                    ...item,
+                    hybridScore: (current.hybridScore || 0) + pathScore * 80 + (100 - index) * 0.3,
+                    recommendSource: current.recommendSource ? `${current.recommendSource}+最短路` : "最短路",
+                  });
+                });
+                const mergedList = Array.from(merged.values()).sort((a, b) => (Number(b.hybridScore) || 0) - (Number(a.hybridScore) || 0));
+                this.allCoursesData = mergedList;
+                this.$message.success(`已加载 ${mergedList.length} 条融合推荐`);
+                return;
+              }
+
+              if (collaborativeValid && !shortestPathValid) {
+                this.allCoursesData = collaborativeData;
+                this.$message.success(`已加载 ${collaborativeData.length} 条协同过滤推荐`);
+                return;
+              }
+
+              if (!collaborativeValid && shortestPathValid) {
+                this.allCoursesData = shortestPathData;
+                this.$message.success(`已加载 ${shortestPathData.length} 条最短路径推荐`);
+                return;
+              }
+
+              if (collaborativeResult.data && collaborativeResult.data.length > 0) {
+                this.allCoursesData = collaborativeResult.data;
+                this.$message.success(`已加载 ${collaborativeResult.data.length} 条协同过滤推荐（含兜底）`);
+                return;
+              }
+
+              if (shortestPathResult.data && shortestPathResult.data.length > 0) {
+                this.allCoursesData = shortestPathResult.data;
+                this.$message.success(`已加载 ${shortestPathResult.data.length} 条最短路径推荐（含兜底）`);
+                return;
+              }
+            } catch (err) {
+              console.warn("融合推荐失败，尝试单一路径推荐:", err);
             }
-          } catch (err) {
-            console.warn("最短路径推荐失败，回退全量课程:", err);
           }
         }
 
-        // 推荐失败时回退到全量课程
-        const response = await fetch("http://localhost:3000/api/neo4j/course");
-        if (!response.ok) {
-          throw new Error("无法从Neo4j加载课程");
-        }
-
-        const result = await response.json();
-        const allCourses = result.data || result;
-        this.allCoursesData = allCourses;
-        this.$message.success(`成功加载 ${allCourses.length} 个课程`);
+        this.allCoursesData = [];
+        this.$message.info("暂无可用推荐课程");
       } catch (error) {
         console.error("Error loading courses:", error);
-        this.$message.warning("加载课程失败，使用默认数据");
+        this.allCoursesData = [];
+        this.$message.warning("加载推荐失败，当前暂无推荐课程");
       }
     },
     async recordCourseInteraction(course, interactionType = "view") {
@@ -740,18 +899,43 @@ export default {
         console.warn("记录课程交互失败:", error);
       }
     },
+    async addToLearningList(course) {
+      const userId = this.getCurrentUserId();
+      if (userId == null || !course || !course.id) {
+        this.$message.warning("请先登录后再加入学习清单");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:3000/api/neo4j/enrollments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            courseId: course.id,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "加入学习清单失败");
+        }
+
+        this.recordCourseInteraction(course, "enroll");
+        if (!Array.isArray(this.userLearningStats.courseIds)) {
+          this.userLearningStats.courseIds = [];
+        }
+        if (!this.userLearningStats.courseIds.map((id) => String(id)).includes(String(course.id))) {
+          this.userLearningStats.courseIds.push(course.id);
+        }
+        this.userLearningStats.interactionCount = Number(this.userLearningStats.interactionCount || 0) + 1;
+        this.$message.success("已加入学习清单，并同步到 Neo4j");
+      } catch (error) {
+        this.$message.error(error.message || "加入学习清单失败");
+      }
+    },
     getCategoryIdByName(categoryName) {
-      const categoryMap = {
-        编程开发: 1,
-        数据科学: 2,
-        人工智能: 3,
-        前端开发: 4,
-        后端开发: 5,
-        移动开发: 6,
-        云计算: 7,
-        网络安全: 8,
-      };
-      return categoryMap[categoryName] || 1;
+      const category = this.categories.find((item) => item.name === categoryName);
+      return category ? category.id : 1;
     },
     setActiveNav(navKey) {
       this.activeNav = navKey;
@@ -793,14 +977,31 @@ export default {
       console.log("搜索关键词:", this.searchKeyword);
     },
     selectCategory(category) {
-      this.selectedCategory =
-        this.selectedCategory && this.selectedCategory.id === category.id
-          ? null
-          : category;
+      const isSame = this.selectedCategory && this.selectedCategory.id === category.id;
+      this.selectedCategory = isSame ? null : category;
+
+      if (!this.selectedCategory) {
+        this.filters = [{ key: "all", name: "全部" }];
+        this.activeFilter = "all";
+        return;
+      }
+
+      const subFilters = (this.selectedCategory.subDisciplines || [])
+        .filter((item) => item && item.name)
+        .map((item) => ({ key: item.name, name: `${item.name}（${Number(item.courseCount || 0)}）` }));
+
+      this.filters = [{ key: "all", name: "全部" }, ...subFilters];
       this.activeFilter = "all";
     },
     setFilter(filterKey) {
       this.activeFilter = filterKey;
+      this.recommendationPage = 0;
+    },
+    prevRecommendationPage() {
+      if (this.recommendationPage > 0) this.recommendationPage -= 1;
+    },
+    nextRecommendationPage() {
+      if (this.hasNextRecommendationPage) this.recommendationPage += 1;
     },
     viewResource(resource) {
       this.$message.success("正在打开: " + resource.title);
@@ -809,7 +1010,7 @@ export default {
     },
     handlePageChange(page) {
       this.currentPage = page;
-      // filteredResources 计算属性会自动更新
+      // 分类课程分页保持不变
       // 滚动到顶部
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
@@ -1068,7 +1269,18 @@ export default {
 /* 筛选标签 */
 .filter-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  max-width: 100%;
+}
+
+.category-filter-tabs {
+  margin-top: 16px;
+}
+
+.filter-tabs .el-button {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* 资源网格 */
@@ -1076,29 +1288,72 @@ export default {
   margin-bottom: 40px;
 }
 
+.carousel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+.carousel-hint {
+  font-size: 13px;
+  color: #888;
+}
+
+.recommendation-carousel {
+  width: 100%;
+  overflow: hidden;
+}
+
+.recommendation-track {
+  display: flex;
+  gap: 18px;
+  transition: transform 0.35s ease;
+  will-change: transform;
+}
+
+.recommendation-card {
+  flex: 0 0 calc((100% - 72px) / 5);
+  min-width: 0;
+}
+
+.category-courses-section {
+  padding-top: 10px;
+}
+
 .resources-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, 320px);
   gap: 20px;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .resource-card {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  min-height: 300px;
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .resource-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .resource-image {
   position: relative;
-  height: 200px;
+  width: 100%;
+  height: 190px;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -1112,7 +1367,7 @@ export default {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.72);
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1120,6 +1375,9 @@ export default {
 }
 
 .resource-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   padding: 20px;
 }
 
@@ -1128,16 +1386,27 @@ export default {
   font-weight: 600;
   color: #333;
   margin-bottom: 10px;
+  min-height: 52px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .resource-description {
   color: #666;
   font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 15px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  min-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recommend-reason {
+  min-height: 56px;
   margin-bottom: 12px;
   padding: 8px 10px;
   border-radius: 6px;
@@ -1145,13 +1414,24 @@ export default {
   color: #4a56a8;
   font-size: 12px;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .resource-meta {
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   font-size: 12px;
+}
+
+.learning-list-btn {
+  margin-top: 14px;
+  width: 100%;
 }
 
 .resource-level {
